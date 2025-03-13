@@ -50,6 +50,7 @@ jobs:
           aws-region: ${{ env.TESTING_REGION }}
           role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
           role-session-name: testing-packaging
+          role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
       - name: Delete feature branch stack
@@ -80,6 +81,7 @@ jobs:
           aws-region: ${{ env.TESTING_REGION }}
           role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
           role-session-name: feature-deployment
+          role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
       - name: Deploy to feature stack in the testing account
@@ -117,6 +119,7 @@ jobs:
           aws-region: ${{ env.TESTING_REGION }}
           role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
           role-session-name: testing-packaging
+          role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
       - name: Validate S3 bucket access
@@ -162,6 +165,7 @@ jobs:
           aws-region: ${{ env.TESTING_REGION }}
           role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
           role-session-name: testing-deployment
+          role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
       - name: Deploy to testing account
@@ -205,6 +209,7 @@ jobs:
           aws-region: ${{ env.PROD_REGION }}
           role-to-assume: ${{ env.PROD_PIPELINE_EXECUTION_ROLE }}
           role-session-name: prod-deployment
+          role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
       - name: Deploy to production account
