@@ -10,7 +10,7 @@ on:
       - 'feature**'
 
 env:
-  PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.AKIATRNEQNT5FP3WOZNX }}
+  PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_ACCESS_KEY_ID }}
   PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_SECRET }}
   SAM_TEMPLATE: template.yaml
   TESTING_STACK_NAME: sam-app
@@ -50,16 +50,24 @@ jobs:
         with:
           use-installer: true
 
+      - name: Debug secrets
+        run: |
+          echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
+          echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
+
       - name: Assume the testing pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.TESTING_REGION }}
-          role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: testing-packaging
-          role-duration-seconds: 3600
-          role-skip-session-tagging: true
+          # role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
+          # role-session-name: testing-packaging
+          # role-duration-seconds: 3600
+          # role-skip-session-tagging: true
+
+      - name: Verify AWS credentials
+        run: aws sts get-caller-identity
 
       - name: Delete feature branch stack
         env:
@@ -85,16 +93,24 @@ jobs:
           use-installer: true
       - run: sam build --template ${SAM_TEMPLATE} --use-container
 
+      - name: Debug secrets
+        run: |
+          echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
+          echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
+
       - name: Assume the testing pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.TESTING_REGION }}
-          role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: feature-deployment
-          role-duration-seconds: 3600
-          role-skip-session-tagging: true
+          # role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
+          # role-session-name: feature-deployment
+          # role-duration-seconds: 3600
+          # role-skip-session-tagging: true
+
+      - name: Verify AWS credentials
+        run: aws sts get-caller-identity
 
       - name: Deploy to feature stack in the testing account
         shell: bash
@@ -119,16 +135,24 @@ jobs:
       - name: Build resources
         run: sam build --template ${SAM_TEMPLATE} --use-container
 
+      - name: Debug secrets
+        run: |
+          echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
+          echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
+
       - name: Assume the testing pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.TESTING_REGION }}
-          role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: testing-packaging
-          role-duration-seconds: 3600
-          role-skip-session-tagging: true
+          # role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
+          # role-session-name: testing-packaging
+          # role-duration-seconds: 3600
+          # role-skip-session-tagging: true
+
+      - name: Verify AWS credentials
+        run: aws sts get-caller-identity
 
       - name: Upload artifacts to testing artifact buckets
         run: |
@@ -142,16 +166,24 @@ jobs:
           name: packaged-testing.yaml
           path: packaged-testing.yaml
 
+      - name: Debug secrets (prod)
+        run: |
+          echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
+          echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
+
       - name: Assume the prod pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.PROD_REGION }}
-          role-to-assume: ${{ env.PROD_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: prod-packaging
-          role-duration-seconds: 3600
-          role-skip-session-tagging: true
+          # role-to-assume: ${{ env.PROD_PIPELINE_EXECUTION_ROLE }}
+          # role-session-name: prod-packaging
+          # role-duration-seconds: 3600
+          # role-skip-session-tagging: true
+
+      - name: Verify AWS credentials (prod)
+        run: aws sts get-caller-identity
 
       - name: Upload artifacts to production artifact buckets
         run: |
@@ -178,16 +210,24 @@ jobs:
         with:
           name: packaged-testing.yaml
 
+      - name: Debug secrets
+        run: |
+          echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
+          echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
+
       - name: Assume the testing pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.TESTING_REGION }}
-          role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: testing-deployment
-          role-duration-seconds: 3600
-          role-skip-session-tagging: true
+          # role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
+          # role-session-name: testing-deployment
+          # role-duration-seconds: 3600
+          # role-skip-session-tagging: true
+
+      - name: Verify AWS credentials
+        run: aws sts get-caller-identity
 
       - name: Deploy to testing account
         run: |
@@ -224,16 +264,24 @@ jobs:
         with:
           name: packaged-prod.yaml
 
+      - name: Debug secrets
+        run: |
+          echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
+          echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
+
       - name: Assume the prod pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.PROD_REGION }}
-          role-to-assume: ${{ env.PROD_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: prod-deployment
-          role-duration-seconds: 3600
-          role-skip-session-tagging: true
+          # role-to-assume: ${{ env.PROD_PIPELINE_EXECUTION_ROLE }}
+          # role-session-name: prod-deployment
+          # role-duration-seconds: 3600
+          # role-skip-session-tagging: true
+
+      - name: Verify AWS credentials
+        run: aws sts get-caller-identity
 
       - name: Deploy to production account
         run: |
