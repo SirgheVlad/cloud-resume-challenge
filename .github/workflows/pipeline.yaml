@@ -1,4 +1,4 @@
-name: Pipeline
+kname: Pipeline
 
 on:
   push:
