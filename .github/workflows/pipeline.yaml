@@ -121,10 +121,10 @@ jobs:
       - name: Package the application
         run: |
           sam package --s3-bucket ${ARTIFACTS_BUCKET} --region ${REGION} --output-template-file packaged.yaml
-        - uses: actions/upload-artifact@v4
-          with:
-            name: packaged.yaml
-            path: packaged.yaml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packaged.yaml
+          path: packaged.yaml
 
   deploy:
     if: github.ref == 'refs/heads/main'
