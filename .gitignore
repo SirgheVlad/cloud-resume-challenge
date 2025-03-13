@@ -1,1 +1,5 @@
-node_modules
+.DS_Store
+.aws-sam/
+*.zip
+node_modules/
+packaged.yaml
