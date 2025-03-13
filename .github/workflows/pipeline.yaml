@@ -131,11 +131,15 @@ jobs:
           else
             echo "No samconfig.toml file found after build."
           fi
-      - name: Remove samconfig.toml if it exists
+      - name: Backup and remove samconfig.toml
         run: |
           if [ -f samconfig.toml ]; then
-            echo "Removing samconfig.toml to avoid configuration interference."
+            echo "Backing up samconfig.toml to samconfig.toml.bak..."
+            cp samconfig.toml samconfig.toml.bak
+            echo "Removing samconfig.toml to avoid resolve_s3 interference..."
             rm samconfig.toml
+          else
+            echo "No samconfig.toml to remove."
           fi
       - name: Debug SAM CLI configuration
         run: |
@@ -161,6 +165,13 @@ jobs:
           # role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
+      - name: Validate S3 bucket access
+        run: |
+          echo "Checking access to S3 bucket: ${TESTING_ARTIFACTS_BUCKET}"
+          aws s3 ls s3://${TESTING_ARTIFACTS_BUCKET} || {
+            echo "ERROR: Cannot access S3 bucket. Check bucket existence and permissions."
+            exit 1
+          }
       - name: Debug environment and command (testing)
         run: |
           echo "TESTING_ARTIFACTS_BUCKET: ${TESTING_ARTIFACTS_BUCKET}"
@@ -170,8 +181,16 @@ jobs:
             exit 1
           fi
           echo "Testing bucket value: ${TESTING_ARTIFACTS_BUCKET}"
-          echo "Full sam package command: sam package --no-resolve-s3 --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml"
-          sam package --no-resolve-s3 --s3-bucket "${TESTING_ARTIFACTS_BUCKET}" --region "${TESTING_REGION}" --output-template-file packaged-testing.yaml
+          echo "Creating script to run sam package command..."
+          cat << 'EOF' > run-sam-package.sh
+#!/bin/bash
+set -e
+echo "Running sam package with hardcoded bucket..."
+sam package --no-resolve-s3 --s3-bucket aws-sam-cli-managed-dev-pipeline-r-artifactsbucket-chbfgr8hs5ox --region us-east-1 --output-template-file packaged-testing.yaml
+EOF
+          chmod +x run-sam-package.sh
+          echo "Executing sam package script..."
+          ./run-sam-package.sh
       - uses: actions/upload-artifact@v4
         with:
           name: packaged-testing.yaml
@@ -185,12 +204,28 @@ jobs:
             exit 1
           fi
           echo "Testing bucket value: ${PROD_ARTIFACTS_BUCKET}"
-          echo "Full sam package command: sam package --no-resolve-s3 --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml"
-          sam package --no-resolve-s3 --s3-bucket "${PROD_ARTIFACTS_BUCKET}" --region "${PROD_REGION}" --output-template-file packaged-prod.yaml
+          echo "Creating script to run sam package command for prod..."
+          cat << 'EOF' > run-sam-package-prod.sh
+#!/bin/bash
+set -e
+echo "Running sam package with hardcoded bucket..."
+sam package --no-resolve-s3 --s3-bucket aws-sam-cli-managed-prod-pipeline--artifactsbucket-p4zp6swo9njz --region us-east-1 --output-template-file packaged-prod.yaml
+EOF
+          chmod +x run-sam-package-prod.sh
+          echo "Executing sam package script for prod..."
+          ./run-sam-package-prod.sh
       - uses: actions/upload-artifact@v4
         with:
           name: packaged-prod.yaml
           path: packaged-prod.yaml
+      - name: Restore samconfig.toml
+        run: |
+          if [ -f samconfig.toml.bak ]; then
+            echo "Restoring samconfig.toml from backup..."
+            mv samconfig.toml.bak samconfig.toml
+          else
+            echo "No samconfig.toml.bak to restore."
+          fi
 
   deploy-testing:
     if: github.ref == 'refs/heads/main'
