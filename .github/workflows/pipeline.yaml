@@ -132,6 +132,18 @@ jobs:
         with:
           use-installer: true
 
+      - name: Check SAM CLI version
+        run: sam --version
+
+      - name: Check for samconfig.toml
+        run: |
+          if [ -f samconfig.toml ]; then
+            echo "samconfig.toml exists:"
+            cat samconfig.toml
+          else
+            echo "No samconfig.toml file found."
+          fi
+
       - name: Build resources
         run: sam build --template ${SAM_TEMPLATE} --use-container
 
@@ -158,8 +170,8 @@ jobs:
         run: |
           echo "TESTING_ARTIFACTS_BUCKET: ${TESTING_ARTIFACTS_BUCKET}"
           echo "TESTING_REGION: ${TESTING_REGION}"
-          echo "Full sam package command: sam package --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml"
-          sam package --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml
+          echo "Full sam package command: sam package --no-resolve-s3 --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml"
+          sam package --no-resolve-s3 --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml
 
       - uses: actions/upload-artifact@v4
         with:
@@ -170,8 +182,8 @@ jobs:
         run: |
           echo "PROD_ARTIFACTS_BUCKET: ${PROD_ARTIFACTS_BUCKET}"
           echo "PROD_REGION: ${PROD_REGION}"
-          echo "Full sam package command: sam package --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml"
-          sam package --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml
+          echo "Full sam package command: sam package --no-resolve-s3 --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml"
+          sam package --no-resolve-s3 --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml
 
       - uses: actions/upload-artifact@v4
         with:
