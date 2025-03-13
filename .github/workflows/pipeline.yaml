@@ -17,19 +17,11 @@ env:
   TESTING_PIPELINE_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-dev-pipel-PipelineExecutionRole-ancxAT1a4efW
   TESTING_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-dev-p-CloudFormationExecutionRo-xMoztYyfRS3i
   TESTING_ARTIFACTS_BUCKET: aws-sam-cli-managed-dev-pipeline-r-artifactsbucket-chbfgr8hs5ox
-  # If there are functions with "Image" PackageType in your template,
-  # uncomment the line below and add "--image-repository ${TESTING_IMAGE_REPOSITORY}" to
-  # testing "sam package" and "sam deploy" commands.
-  # TESTING_IMAGE_REPOSITORY = '0123456789.dkr.ecr.region.amazonaws.com/repository-name'
   TESTING_REGION: us-east-1
   PROD_STACK_NAME: sam-app
   PROD_PIPELINE_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-OjZWT7GGFuhN
   PROD_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-prod--CloudFormationExecutionRo-jH2LRipDYjV3
   PROD_ARTIFACTS_BUCKET: aws-sam-cli-managed-prod-pipeline--artifactsbucket-p4zp6swo9njz
-  # If there are functions with "Image" PackageType in your template,
-  # uncomment the line below and add "--image-repository ${PROD_IMAGE_REPOSITORY}" to
-  # prod "sam package" and "sam deploy" commands.
-  # PROD_IMAGE_REPOSITORY = '0123456789.dkr.ecr.region.amazonaws.com/repository-name'
   PROD_REGION: us-east-1
 
 jobs:
@@ -49,12 +41,10 @@ jobs:
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
-
       - name: Debug secrets
         run: |
           echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
           echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
-
       - name: Assume the testing pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -65,10 +55,8 @@ jobs:
           # role-session-name: testing-packaging
           # role-duration-seconds: 3600
           # role-skip-session-tagging: true
-
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
-
       - name: Delete feature branch stack
         env:
           FEATURE_BRANCH_NAME: ${{ github.event.ref }}
@@ -79,10 +67,6 @@ jobs:
             --no-prompts
 
   build-and-deploy-feature:
-    # this stage is triggered only for feature branches (feature*),
-    # which will build the stack and deploy to a stack named with branch name.
-    # https://github.com/actions/setup-python
-    # https://github.com/aws-actions/configure-aws-credentials#notice-node12-deprecation-warning
     if: startsWith(github.ref, 'refs/heads/feature')
     needs: [test]
     runs-on: ubuntu-latest
@@ -92,12 +76,10 @@ jobs:
         with:
           use-installer: true
       - run: sam build --template ${SAM_TEMPLATE} --use-container
-
       - name: Debug secrets
         run: |
           echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
           echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
-
       - name: Assume the testing pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -108,10 +90,8 @@ jobs:
           # role-session-name: feature-deployment
           # role-duration-seconds: 3600
           # role-skip-session-tagging: true
-
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
-
       - name: Deploy to feature stack in the testing account
         shell: bash
         run: |
@@ -131,10 +111,8 @@ jobs:
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
-
       - name: Check SAM CLI version
         run: sam --version
-
       - name: Check for samconfig.toml
         run: |
           if [ -f samconfig.toml ]; then
@@ -143,15 +121,12 @@ jobs:
           else
             echo "No samconfig.toml file found."
           fi
-
       - name: Build resources
         run: sam build --template ${SAM_TEMPLATE} --use-container
-
       - name: Debug secrets
         run: |
           echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
           echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
-
       - name: Assume the testing pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -162,10 +137,8 @@ jobs:
           # role-session-name: testing-packaging
           # role-duration-seconds: 3600
           # role-skip-session-tagging: true
-
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
-
       - name: Debug environment and command (testing)
         run: |
           echo "TESTING_ARTIFACTS_BUCKET: ${TESTING_ARTIFACTS_BUCKET}"
@@ -175,4 +148,112 @@ jobs:
             exit 1
           fi
           echo "Testing bucket value: ${TESTING_ARTIFACTS_BUCKET}"
-          echo "Full sam package command: sam package --s3-bucket aws-sam-cli-managed-dev-pipeline-r-artifactsbucket-chbfgr8hs5ox --region us-east-1 --output-template-file packaged
+          echo "Full sam package command: sam package --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml"
+          sam package --s3-bucket "${TESTING_ARTIFACTS_BUCKET}" --region "${TESTING_REGION}" --output-template-file packaged-testing.yaml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packaged-testing.yaml
+          path: packaged-testing.yaml
+      - name: Debug environment and command (prod)
+        run: |
+          echo "PROD_ARTIFACTS_BUCKET: ${PROD_ARTIFACTS_BUCKET}"
+          echo "PROD_REGION: ${PROD_REGION}"
+          if [ -z "${PROD_ARTIFACTS_BUCKET}" ]; then
+            echo "ERROR: PROD_ARTIFACTS_BUCKET is empty!"
+            exit 1
+          fi
+          echo "Testing bucket value: ${PROD_ARTIFACTS_BUCKET}"
+          echo "Full sam package command: sam package --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml"
+          sam package --s3-bucket "${PROD_ARTIFACTS_BUCKET}" --region "${PROD_REGION}" --output-template-file packaged-prod.yaml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packaged-prod.yaml
+          path: packaged-prod.yaml
+
+  deploy-testing:
+    if: github.ref == 'refs/heads/main'
+    needs: [build-and-package]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: packaged-testing.yaml
+      - name: Debug secrets
+        run: |
+          echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
+          echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
+      - name: Assume the testing pipeline user role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.TESTING_REGION }}
+          # role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
+          # role-session-name: testing-deployment
+          # role-duration-seconds: 3600
+          # role-skip-session-tagging: true
+      - name: Verify AWS credentials
+        run: aws sts get-caller-identity
+      - name: Deploy to testing account
+        run: |
+          sam deploy --stack-name ${TESTING_STACK_NAME} \
+            --template packaged-testing.yaml \
+            --capabilities CAPABILITY_IAM \
+            --region ${TESTING_REGION} \
+            --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
+            --no-fail-on-empty-changeset \
+            --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
+
+  integration-test:
+    if: github.ref == 'refs/heads/main'
+    needs: [deploy-testing]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          # trigger the integration tests here
+
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
+    needs: [integration-test]
+    runs-on: ubuntu-latest
+    # Configure GitHub Action Environment to have a manual approval step before deployment to production
+    # https://docs.github.com/en/actions/reference/environments
+    # environment: <configured-environment>
+    steps:
+      - uses: actions/checkout@v3
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: packaged-prod.yaml
+      - name: Debug secrets
+        run: |
+          echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
+          echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
+      - name: Assume the prod pipeline user role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.PROD_REGION }}
+          # role-to-assume: ${{ env.PROD_PIPELINE_EXECUTION_ROLE }}
+          # role-session-name: prod-deployment
+          # role-duration-seconds: 3600
+          # role-skip-session-tagging: true
+      - name: Verify AWS credentials
+        run: aws sts get-caller-identity
+      - name: Deploy to production account
+        run: |
+          sam deploy --stack-name ${PROD_STACK_NAME} \
+            --template packaged-prod.yaml \
+            --capabilities CAPABILITY_IAM \
+            --region ${PROD_REGION} \
+            --s3-bucket ${PROD_ARTIFACTS_BUCKET} \
+            --no-fail-on-empty-changeset \
+            --role-arn ${PROD_CLOUDFORMATION_EXECUTION_ROLE}
