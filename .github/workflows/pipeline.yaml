@@ -25,9 +25,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: |
-          # Placeholder for unit tests
-          echo "Running unit tests..."
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./src
+      - name: Run unit tests
+        run: echo "Unit tests placeholder"
+        working-directory: ./src
 
   delete-feature:
     if: startsWith(github.event.ref, 'feature') && github.event_name == 'delete'
@@ -68,7 +75,15 @@ jobs:
         with:
           use-installer: true
           version: 1.120.0
-      - run: sam build --template ${SAM_TEMPLATE} --use-container
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./src
+      - name: Build SAM application
+        run: sam build --template ${SAM_TEMPLATE} --use-container
       - name: Assume the pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -103,7 +118,14 @@ jobs:
         with:
           use-installer: true
           version: 1.120.0
-      - name: Build resources
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./src
+      - name: Build SAM application
         run: sam build --template ${SAM_TEMPLATE} --use-container
       - name: Assume the pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
