@@ -154,43 +154,24 @@ jobs:
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
 
-      - name: Upload artifacts to testing artifact buckets
+      - name: Debug environment and command (testing)
         run: |
-          sam package \
-            --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
-            --region ${TESTING_REGION} \
-            --output-template-file packaged-testing.yaml
+          echo "TESTING_ARTIFACTS_BUCKET: ${TESTING_ARTIFACTS_BUCKET}"
+          echo "TESTING_REGION: ${TESTING_REGION}"
+          echo "Full sam package command: sam package --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml"
+          sam package --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml
 
       - uses: actions/upload-artifact@v4
         with:
           name: packaged-testing.yaml
           path: packaged-testing.yaml
 
-      - name: Debug secrets (prod)
+      - name: Debug environment and command (prod)
         run: |
-          echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
-          echo "Secret Access Key: $PIPELINE_USER_SECRET_ACCESS_KEY"
-
-      - name: Assume the prod pipeline user role
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.PROD_REGION }}
-          # role-to-assume: ${{ env.PROD_PIPELINE_EXECUTION_ROLE }}
-          # role-session-name: prod-packaging
-          # role-duration-seconds: 3600
-          # role-skip-session-tagging: true
-
-      - name: Verify AWS credentials (prod)
-        run: aws sts get-caller-identity
-
-      - name: Upload artifacts to production artifact buckets
-        run: |
-          sam package \
-            --s3-bucket ${PROD_ARTIFACTS_BUCKET} \
-            --region ${PROD_REGION} \
-            --output-template-file packaged-prod.yaml
+          echo "PROD_ARTIFACTS_BUCKET: ${PROD_ARTIFACTS_BUCKET}"
+          echo "PROD_REGION: ${PROD_REGION}"
+          echo "Full sam package command: sam package --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml"
+          sam package --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml
 
       - uses: actions/upload-artifact@v4
         with:
