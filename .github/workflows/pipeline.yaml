@@ -1,4 +1,4 @@
-name: Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -13,16 +13,11 @@ env:
   PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_ACCESS_KEY_ID }}
   PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_SECRET }}
   SAM_TEMPLATE: template.yaml
-  TESTING_STACK_NAME: visitor-counter-stack
-  TESTING_PIPELINE_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-dev-pipel-PipelineExecutionRole-ancxAT1a4efW
-  TESTING_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-dev-p-CloudFormationExecutionRo-xMoztYyfRS3i
-  TESTING_ARTIFACTS_BUCKET: aws-sam-cli-managed-dev-pipeline-r-artifactsbucket-chbfgr8hs5ox
-  TESTING_REGION: us-east-1
-  PROD_STACK_NAME: visitor-counter-stack-prod
-  PROD_PIPELINE_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-OjZWT7GGFuhN
-  PROD_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-prod--CloudFormationExecutionRo-jH2LRipDYjV3
-  PROD_ARTIFACTS_BUCKET: aws-sam-cli-managed-prod-pipeline--artifactsbucket-p4zp6swo9njz
-  PROD_REGION: us-east-1
+  STACK_NAME: visitor-counter-stack
+  PIPELINE_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-dev-pipel-PipelineExecutionRole-ancxAT1a4efW
+  CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-dev-p-CloudFormationExecutionRo-xMoztYyfRS3i
+  ARTIFACTS_BUCKET: aws-sam-cli-managed-dev-pipeline-r-artifactsbucket-chbfgr8hs5ox
+  REGION: us-east-1
 
 jobs:
   test:
@@ -31,7 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          # trigger the tests here
+          # Placeholder for unit tests
+          echo "Running unit tests..."
 
   delete-feature:
     if: startsWith(github.event.ref, 'feature') && github.event_name == 'delete'
@@ -42,14 +38,14 @@ jobs:
         with:
           use-installer: true
           version: 1.120.0
-      - name: Assume the testing pipeline user role
+      - name: Assume the pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.TESTING_REGION }}
-          role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: testing-pack
+          aws-region: ${{ env.REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          role-session-name: feature-delete
           role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
@@ -59,7 +55,7 @@ jobs:
         run: |
           sam delete \
             --stack-name $(echo ${FEATURE_BRANCH_NAME##*/} | tr -cd '[a-zA-Z0-9-]') \
-            --region ${TESTING_REGION} \
+            --region ${REGION} \
             --no-prompts
 
   build-and-deploy-feature:
@@ -73,25 +69,29 @@ jobs:
           use-installer: true
           version: 1.120.0
       - run: sam build --template ${SAM_TEMPLATE} --use-container
-      - name: Assume the testing pipeline user role
+      - name: Assume the pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.TESTING_REGION }}
-          role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
+          aws-region: ${{ env.REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
           role-session-name: feature-deployment
           role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
-      - name: Deploy to feature stack in the testing account
+      - name: Deploy to feature stack
         run: |
           sam deploy --stack-name $(echo ${GITHUB_REF##*/} | tr -cd '[a-zA-Z0-9-]') \
+            --template ${SAM_TEMPLATE} \
             --capabilities CAPABILITY_IAM \
-            --region ${TESTING_REGION} \
-            --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
+            --region ${REGION} \
+            --s3-bucket ${ARTIFACTS_BUCKET} \
             --no-fail-on-empty-changeset \
-            --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
+            --no-confirm-changeset \
+            --role-arn ${CLOUDFORMATION_EXECUTION_ROLE}
+        env:
+          SAM_CLI_TELEMETRY: 0
 
   build-and-package:
     if: github.ref == 'refs/heads/main'
@@ -105,59 +105,28 @@ jobs:
           version: 1.120.0
       - name: Build resources
         run: sam build --template ${SAM_TEMPLATE} --use-container
-      - name: Backup and remove samconfig.toml
-        run: |
-          if [ -f samconfig.toml ]; then
-            cp samconfig.toml samconfig.toml.bak
-            rm samconfig.toml
-          fi
-      - name: Assume the testing pipeline user role
+      - name: Assume the pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.TESTING_REGION }}
-          role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: testing-packaging
+          aws-region: ${{ env.REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          role-session-name: packaging
           role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
-      - name: Validate S3 bucket access (testing)
-        run: aws s3 ls s3://${TESTING_ARTIFACTS_BUCKET} || exit 1
-      - name: Package for testing
+      - name: Validate S3 bucket access
+        run: aws s3 ls s3://${ARTIFACTS_BUCKET} || exit 1
+      - name: Package the application
         run: |
-          sam package --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml
-      - uses: actions/upload-artifact@v4
-        with:
-          name: packaged-testing.yaml
-          path: packaged-testing.yaml
-      - name: Assume the prod pipeline user role
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.PROD_REGION }}
-          role-to-assume: ${{ env.PROD_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: prod-packaging
-          role-skip-session-tagging: true
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity
-      - name: Validate S3 bucket access (prod)
-        run: aws s3 ls s3://${PROD_ARTIFACTS_BUCKET} || exit 1
-      - name: Package for prod
-        run: |
-          sam package --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml
-      - uses: actions/upload-artifact@v4
-        with:
-          name: packaged-prod.yaml
-          path: packaged-prod.yaml
-      - name: Restore samconfig.toml
-        run: |
-          if [ -f samconfig.toml.bak ]; then
-            mv samconfig.toml.bak samconfig.toml
-          fi
+          sam package --s3-bucket ${ARTIFACTS_BUCKET} --region ${REGION} --output-template-file packaged.yaml
+        - uses: actions/upload-artifact@v4
+          with:
+            name: packaged.yaml
+            path: packaged.yaml
 
-  deploy-testing:
+  deploy:
     if: github.ref == 'refs/heads/main'
     needs: [build-and-package]
     runs-on: ubuntu-latest
@@ -169,76 +138,37 @@ jobs:
           version: 1.120.0
       - uses: actions/download-artifact@v4
         with:
-          name: packaged-testing.yaml
-      - name: Assume the testing pipeline user role
+          name: packaged.yaml
+      - name: Assume the pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.TESTING_REGION }}
-          role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: testing-deployment
+          aws-region: ${{ env.REGION }}
+          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          role-session-name: deployment
           role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
-      - name: Deploy to testing account
+      - name: Deploy to the stack
         run: |
-          sam deploy --stack-name ${TESTING_STACK_NAME} \
-            --template packaged-testing.yaml \
+          sam deploy --stack-name ${STACK_NAME} \
+            --template packaged.yaml \
             --capabilities CAPABILITY_IAM \
-            --region ${TESTING_REGION} \
-            --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
-            --no-resolve-s3 \
+            --region ${REGION} \
+            --s3-bucket ${ARTIFACTS_BUCKET} \
             --no-fail-on-empty-changeset \
             --no-confirm-changeset \
-            --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
+            --role-arn ${CLOUDFORMATION_EXECUTION_ROLE}
         env:
           SAM_CLI_TELEMETRY: 0
 
   integration-test:
     if: github.ref == 'refs/heads/main'
-    needs: [deploy-testing]
+    needs: [deploy]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - run: |
-          # trigger the integration tests here
-
-  deploy-prod:
-    if: github.ref == 'refs/heads/main'
-    needs: [integration-test]
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v3
-      - uses: aws-actions/setup-sam@v2
-        with:
-          use-installer: true
-          version: 1.120.0
-      - uses: actions/download-artifact@v4
-        with:
-          name: packaged-prod.yaml
-      - name: Assume the prod pipeline user role
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.PROD_REGION }}
-          role-to-assume: ${{ env.PROD_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: prod-deployment
-          role-skip-session-tagging: true
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity
-      - name: Deploy to production account
-        run: |
-          sam deploy --stack-name ${PROD_STACK_NAME} \
-            --template packaged-prod.yaml \
-            --capabilities CAPABILITY_IAM \
-            --region ${PROD_REGION} \
-            --s3-bucket ${PROD_ARTIFACTS_BUCKET} \
-            --no-resolve-s3 \
-            --no-fail-on-empty-changeset \
-            --no-confirm-changeset \
-            --role-arn ${PROD_CLOUDFORMATION_EXECUTION_ROLE}
-        env:
-          SAM_CLI_TELEMETRY: 0
+          # Placeholder for integration tests
+          echo "Running integration tests..."
