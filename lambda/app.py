@@ -6,6 +6,8 @@ from decimal import Decimal
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(os.getenv('TABLE_NAME'))
 
+# Test CI/CD pipeline
+
 # Custom JSON encoder to handle Decimal
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
