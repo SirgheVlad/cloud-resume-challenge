@@ -190,6 +190,7 @@ jobs:
             --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
             --no-resolve-s3 \
             --no-fail-on-empty-changeset \
+            --no-confirm-changeset \
             --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
         env:
           SAM_CLI_TELEMETRY: 0
@@ -237,7 +238,7 @@ jobs:
             --s3-bucket ${PROD_ARTIFACTS_BUCKET} \
             --no-resolve-s3 \
             --no-fail-on-empty-changeset \
+            --no-confirm-changeset \
             --role-arn ${PROD_CLOUDFORMATION_EXECUTION_ROLE}
         env:
           SAM_CLI_TELEMETRY: 0
-
