@@ -113,16 +113,38 @@ jobs:
           use-installer: true
       - name: Check SAM CLI version
         run: sam --version
-      - name: Check for samconfig.toml
+      - name: Check for samconfig.toml before build
         run: |
           if [ -f samconfig.toml ]; then
-            echo "samconfig.toml exists:"
+            echo "samconfig.toml exists before build:"
             cat samconfig.toml
           else
-            echo "No samconfig.toml file found."
+            echo "No samconfig.toml file found before build."
           fi
       - name: Build resources
         run: sam build --template ${SAM_TEMPLATE} --use-container
+      - name: Check for samconfig.toml after build
+        run: |
+          if [ -f samconfig.toml ]; then
+            echo "samconfig.toml exists after build:"
+            cat samconfig.toml
+          else
+            echo "No samconfig.toml file found after build."
+          fi
+      - name: Remove samconfig.toml if it exists
+        run: |
+          if [ -f samconfig.toml ]; then
+            echo "Removing samconfig.toml to avoid configuration interference."
+            rm samconfig.toml
+          fi
+      - name: Debug SAM CLI configuration
+        run: |
+          echo "SAM CLI configuration:"
+          sam config list --json || echo "Failed to retrieve SAM CLI config."
+      - name: Debug environment variables
+        run: |
+          echo "Checking for SAM-related environment variables:"
+          env | grep -i sam || echo "No SAM-related environment variables found."
       - name: Debug secrets
         run: |
           echo "Access Key ID: $PIPELINE_USER_ACCESS_KEY_ID"
@@ -148,8 +170,8 @@ jobs:
             exit 1
           fi
           echo "Testing bucket value: ${TESTING_ARTIFACTS_BUCKET}"
-          echo "Full sam package command: sam package --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml"
-          sam package --s3-bucket "${TESTING_ARTIFACTS_BUCKET}" --region "${TESTING_REGION}" --output-template-file packaged-testing.yaml
+          echo "Full sam package command: sam package --no-resolve-s3 --s3-bucket ${TESTING_ARTIFACTS_BUCKET} --region ${TESTING_REGION} --output-template-file packaged-testing.yaml"
+          sam package --no-resolve-s3 --s3-bucket "${TESTING_ARTIFACTS_BUCKET}" --region "${TESTING_REGION}" --output-template-file packaged-testing.yaml
       - uses: actions/upload-artifact@v4
         with:
           name: packaged-testing.yaml
@@ -163,8 +185,8 @@ jobs:
             exit 1
           fi
           echo "Testing bucket value: ${PROD_ARTIFACTS_BUCKET}"
-          echo "Full sam package command: sam package --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml"
-          sam package --s3-bucket "${PROD_ARTIFACTS_BUCKET}" --region "${PROD_REGION}" --output-template-file packaged-prod.yaml
+          echo "Full sam package command: sam package --no-resolve-s3 --s3-bucket ${PROD_ARTIFACTS_BUCKET} --region ${PROD_REGION} --output-template-file packaged-prod.yaml"
+          sam package --no-resolve-s3 --s3-bucket "${PROD_ARTIFACTS_BUCKET}" --region "${PROD_REGION}" --output-template-file packaged-prod.yaml
       - uses: actions/upload-artifact@v4
         with:
           name: packaged-prod.yaml
