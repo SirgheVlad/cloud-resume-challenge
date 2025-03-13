@@ -13,12 +13,12 @@ env:
   PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_ACCESS_KEY_ID }}
   PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_SECRET }}
   SAM_TEMPLATE: template.yaml
-  TESTING_STACK_NAME: sam-app
+  TESTING_STACK_NAME: visitor-counter-stack
   TESTING_PIPELINE_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-dev-pipel-PipelineExecutionRole-ancxAT1a4efW
   TESTING_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-dev-p-CloudFormationExecutionRo-xMoztYyfRS3i
   TESTING_ARTIFACTS_BUCKET: aws-sam-cli-managed-dev-pipeline-r-artifactsbucket-chbfgr8hs5ox
   TESTING_REGION: us-east-1
-  PROD_STACK_NAME: sam-app
+  PROD_STACK_NAME: visitor-counter-stack-prod
   PROD_PIPELINE_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-OjZWT7GGFuhN
   PROD_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-prod--CloudFormationExecutionRo-jH2LRipDYjV3
   PROD_ARTIFACTS_BUCKET: aws-sam-cli-managed-prod-pipeline--artifactsbucket-p4zp6swo9njz
@@ -49,8 +49,7 @@ jobs:
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.TESTING_REGION }}
           role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: testing-packaging
-          role-skip-session-tagging: true
+          role-session-name: testing-pack   role-skip-session-tagging: true
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
       - name: Delete feature branch stack
