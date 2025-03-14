@@ -51,7 +51,7 @@ jobs:
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
-          version: 'latest'  # Updated to latest version
+          version: '1.128.0'  # Updated to a specific version
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -76,7 +76,7 @@ jobs:
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
-          version: 'latest'  # Updated to latest version
+          version: '1.128.0'  # Updated to a specific version
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -107,7 +107,7 @@ jobs:
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
-          version: 'latest'  # Updated to latest version
+          version: '1.128.0'  # Updated to a specific version
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -135,7 +135,7 @@ jobs:
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
-          version: 'latest'  # Updated to latest version
+          version: '1.128.0'  # Updated to a specific version
       - uses: actions/download-artifact@v4
         with:
           name: packaged.yaml
@@ -154,7 +154,7 @@ jobs:
             --s3-bucket ${ARTIFACTS_BUCKET} \
             --no-fail-on-empty-changeset \
             --no-confirm-changeset \
-            --no-resolve-s3 \  # Explicitly disable resolve-s3
+            --no-resolve-s3 \
             --role-arn ${CLOUDFORMATION_EXECUTION_ROLE}
         env:
           SAM_CLI_TELEMETRY: 0
