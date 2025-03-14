@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline for Visitor Counter Backend
 
 on:
   push:
@@ -10,14 +10,13 @@ on:
       - 'feature**'
 
 env:
-  PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.PIPELINE_USER_ACCESS_KEY_ID }}
-  PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.PIPELINE_USER_SECRET }}
   SAM_TEMPLATE: template.yaml
-  STACK_NAME: visitor-counter-stack
-  PIPELINE_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-dev-pipel-PipelineExecutionRole-ancxAT1a4efW
-  CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::243547532538:role/aws-sam-cli-managed-dev-p-CloudFormationExecutionRo-xMoztYyfRS3i
-  ARTIFACTS_BUCKET: aws-sam-cli-managed-dev-pipeline-r-artifactsbucket-chbfgr8hs5ox
+  PROD_STACK_NAME: visitor-counter-stack
+  DEV_STACK_NAME: visitor-counter-dev-stack
+  ARTIFACTS_BUCKET: visitor-counter-pipeline-artifacts
   REGION: us-east-1
+  PIPELINE_EXECUTION_ROLE: arn:aws:iam::243547532538:role/VisitorCounterPipelineExecutionRole
+  CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::243547532538:role/VisitorCounterCloudFormationExecutionRole
 
 jobs:
   test:
@@ -25,15 +24,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          node-version: '14'
+          python-version: '3.x'
       - name: Install dependencies
-        run: npm install
+        run: pip install -r requirements.txt
         working-directory: ./src
       - name: Run unit tests
-        run: echo "Unit tests placeholder"
+        run: pytest
         working-directory: ./src
 
   delete-feature:
@@ -48,14 +47,10 @@ jobs:
       - name: Assume the pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.REGION }}
           role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          aws-region: ${{ env.REGION }}
           role-session-name: feature-delete
           role-skip-session-tagging: true
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity
       - name: Delete feature branch stack
         env:
           FEATURE_BRANCH_NAME: ${{ github.event.ref }}
@@ -75,29 +70,18 @@ jobs:
         with:
           use-installer: true
           version: 1.120.0
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./src
       - name: Build SAM application
         run: sam build --template ${SAM_TEMPLATE} --use-container
       - name: Assume the pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.REGION }}
           role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          aws-region: ${{ env.REGION }}
           role-session-name: feature-deployment
           role-skip-session-tagging: true
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity
-      - name: Deploy to feature stack
+      - name: Deploy to feature/dev stack
         run: |
-          sam deploy --stack-name $(echo ${GITHUB_REF##*/} | tr -cd '[a-zA-Z0-9-]') \
+          sam deploy --stack-name ${DEV_STACK_NAME} \
             --template ${SAM_TEMPLATE} \
             --capabilities CAPABILITY_IAM \
             --region ${REGION} \
@@ -118,26 +102,15 @@ jobs:
         with:
           use-installer: true
           version: 1.120.0
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./src
       - name: Build SAM application
         run: sam build --template ${SAM_TEMPLATE} --use-container
       - name: Assume the pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.REGION }}
           role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          aws-region: ${{ env.REGION }}
           role-session-name: packaging
           role-skip-session-tagging: true
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity
       - name: Validate S3 bucket access
         run: aws s3 ls s3://${ARTIFACTS_BUCKET} || exit 1
       - name: Package the application
@@ -164,17 +137,13 @@ jobs:
       - name: Assume the pipeline user role
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.REGION }}
           role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          aws-region: ${{ env.REGION }}
           role-session-name: deployment
           role-skip-session-tagging: true
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity
-      - name: Deploy to the stack
+      - name: Deploy to the prod stack
         run: |
-          sam deploy --stack-name ${STACK_NAME} \
+          sam deploy --stack-name ${PROD_STACK_NAME} \
             --template packaged.yaml \
             --capabilities CAPABILITY_IAM \
             --region ${REGION} \
