@@ -21,7 +21,7 @@ Resources:
       FunctionName: updateVisitorCountNew
       Handler: app.lambda_handler
       Runtime: python3.9
-      CodeUri: ./lambda
+      CodeUri: ./lambda_function
       Policies:
         - DynamoDBCrudPolicy:
             TableName: VisitorCountNew
