@@ -41,7 +41,7 @@ jobs:
         run: pytest
         working-directory: ./src
         env:
-          PYTHONPATH: "${{ github.workspace }}"  # Add project root to PYTHONPATH
+          PYTHONPATH: "${{ github.workspace }}"
 
   delete-feature:
     if: startsWith(github.event.ref, 'feature') && github.event_name == 'delete'
@@ -120,7 +120,7 @@ jobs:
         run: aws s3 ls s3://${ARTIFACTS_BUCKET} || exit 1
       - name: Package the application
         run: |
-          sam package --s3-bucket ${ARTIFACTS_BUCKET} --region ${REGION} --output-template-file packaged.yaml --no-resolve-s3
+          sam package --s3-bucket ${ARTIFACTS_BUCKET} --region ${REGION} --output-template-file packaged.yaml
       - uses: actions/upload-artifact@v4
         with:
           name: packaged.yaml
