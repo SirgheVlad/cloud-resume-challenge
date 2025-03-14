@@ -24,6 +24,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.REGION }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -34,6 +40,8 @@ jobs:
       - name: Run unit tests
         run: pytest
         working-directory: ./src
+        env:
+          PYTHONPATH: "${{ github.workspace }}"  # Add project root to PYTHONPATH
 
   delete-feature:
     if: startsWith(github.event.ref, 'feature') && github.event_name == 'delete'
@@ -44,13 +52,12 @@ jobs:
         with:
           use-installer: true
           version: 1.120.0
-      - name: Assume the pipeline user role
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.REGION }}
-          role-session-name: feature-delete
-          role-skip-session-tagging: true
       - name: Delete feature branch stack
         env:
           FEATURE_BRANCH_NAME: ${{ github.event.ref }}
@@ -70,15 +77,14 @@ jobs:
         with:
           use-installer: true
           version: 1.120.0
-      - name: Build SAM application
-        run: sam build --template ${SAM_TEMPLATE} --use-container
-      - name: Assume the pipeline user role
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.REGION }}
-          role-session-name: feature-deployment
-          role-skip-session-tagging: true
+      - name: Build SAM application
+        run: sam build --template ${SAM_TEMPLATE} --use-container
       - name: Deploy to feature/dev stack
         run: |
           sam deploy --stack-name ${DEV_STACK_NAME} \
@@ -102,15 +108,14 @@ jobs:
         with:
           use-installer: true
           version: 1.120.0
-      - name: Build SAM application
-        run: sam build --template ${SAM_TEMPLATE} --use-container
-      - name: Assume the pipeline user role
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.REGION }}
-          role-session-name: packaging
-          role-skip-session-tagging: true
+      - name: Build SAM application
+        run: sam build --template ${SAM_TEMPLATE} --use-container
       - name: Validate S3 bucket access
         run: aws s3 ls s3://${ARTIFACTS_BUCKET} || exit 1
       - name: Package the application
@@ -134,13 +139,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: packaged.yaml
-      - name: Assume the pipeline user role
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.PIPELINE_EXECUTION_ROLE }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.REGION }}
-          role-session-name: deployment
-          role-skip-session-tagging: true
       - name: Deploy to the prod stack
         run: |
           sam deploy --stack-name ${PROD_STACK_NAME} \
@@ -160,6 +164,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.REGION }}
       - run: |
           # Placeholder for integration tests
           echo "Running integration tests..."

@@ -1,7 +1,7 @@
 import pytest
 import json
 from unittest.mock import patch
-from ..lambda_function.app import lambda_handler  # Relative import: .. goes up one directory
+from lambda_function.app import lambda_handler  # Absolute import
 
 def test_lambda_handler():
     with patch('boto3.resource') as mock_dynamodb:
