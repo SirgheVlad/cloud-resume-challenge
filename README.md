@@ -23,13 +23,3 @@ Visit my resume site: [https://sirghevladaws.com/](https://sirghevladaws.com/) t
 - **API Gateway**: Exposes the `/count` endpoint at `https://o1ck7ephj0.execute-api.us-east-1.amazonaws.com/Prod/count`.
 - **Frontend**: JavaScript on the resume site fetches and displays the count.
 
-## Setup Instructions
-1. **Prerequisites**:
-   - AWS CLI configured with credentials.
-   - SAM CLI installed (`brew install aws-sam-cli` on macOS).
-   - Git and a GitHub account.
-2. **Installation**:
-   - Clone this repository:
-     ```bash
-     git clone https://github.com/SirgheVlad/cloud-resume-challenge.git
-     cd visitor-counter
